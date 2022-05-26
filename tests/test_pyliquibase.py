@@ -8,7 +8,7 @@ from pyliquibase import Pyliquibase
 class TestPyliquibase(TestCase):
     def setUp(self):
         self.dir_test = pathlib.Path(__file__).parent
-        self.testdb = self.dir_test.as_posix() + 'testdb'
+        self.testdb = f'{self.dir_test.as_posix()}testdb'
         self.testlogfile = self.dir_test.joinpath('liquibase.log')
         os.chdir(self.dir_test.as_posix())
 
@@ -27,7 +27,10 @@ class TestPyliquibase(TestCase):
 
     def test_update(self):
         self.tearDown()
-        lb = Pyliquibase(defaultsFile=os.path.dirname(os.path.realpath(__file__)) + "/resources/liquibase.properties")
+        lb = Pyliquibase(
+            defaultsFile=f"{os.path.dirname(os.path.realpath(__file__))}/resources/liquibase.properties"
+        )
+
 
         lb.addarg("--log-level", "info")
         lb.addarg("--log-file", self.testlogfile.as_posix())
@@ -40,7 +43,9 @@ class TestPyliquibase(TestCase):
 
     def test_exception(self):
         lb = Pyliquibase(
-            defaultsFile=os.path.dirname(os.path.realpath(__file__)) + "/resources/liquibase-fail.properties")
+            defaultsFile=f"{os.path.dirname(os.path.realpath(__file__))}/resources/liquibase-fail.properties"
+        )
+
         try:
             lb.status()
         except Exception as e:

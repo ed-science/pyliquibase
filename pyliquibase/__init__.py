@@ -46,18 +46,18 @@ class Pyliquibase():
         """
 
         self.args = []
-        log.warning("Current working dir is %s" % pathlib.Path.cwd())
+        log.warning(f"Current working dir is {pathlib.Path.cwd()}")
         if defaultsFile:
             if not pathlib.Path.cwd().joinpath(defaultsFile).is_file() and not pathlib.Path(defaultsFile).is_file():
-                raise FileNotFoundError("defaultsFile not found! %s" % defaultsFile)
+                raise FileNotFoundError(f"defaultsFile not found! {defaultsFile}")
 
-            self.args.append("--defaults-file=%s" % defaultsFile)
+            self.args.append(f"--defaults-file={defaultsFile}")
 
         if liquibaseHubMode:
-            self.args.append("--hub-mode=%s" % liquibaseHubMode)
+            self.args.append(f"--hub-mode={liquibaseHubMode}")
 
         if logLevel:
-            self.args.append("--log-level=%s" % logLevel)
+            self.args.append(f"--log-level={logLevel}")
 
         self.additional_classpath: str = additionalClasspath
 
@@ -79,23 +79,30 @@ class Pyliquibase():
         import jnius_config
 
         LIQUIBASE_CLASSPATH: list = [
-            resource_filename(__package__, LIQUIBASE_DIR.format(self.version) + "/liquibase.jar"),
-            resource_filename(__package__, LIQUIBASE_DIR.format(self.version) + "/lib/*"),
-            resource_filename(__package__, LIQUIBASE_DIR.format(self.version) + "/lib/picocli*"),
-            resource_filename(__package__, "jdbc-drivers/*")]
+            resource_filename(
+                __package__, f"{LIQUIBASE_DIR.format(self.version)}/liquibase.jar"
+            ),
+            resource_filename(
+                __package__, f"{LIQUIBASE_DIR.format(self.version)}/lib/*"
+            ),
+            resource_filename(
+                __package__, f"{LIQUIBASE_DIR.format(self.version)}/lib/picocli*"
+            ),
+            resource_filename(__package__, "jdbc-drivers/*"),
+        ]
+
 
         if self.additional_classpath:
             LIQUIBASE_CLASSPATH.append(self.additional_classpath)
 
         if not jnius_config.vm_running:
             jnius_config.add_classpath(*LIQUIBASE_CLASSPATH)
-            log.debug("classpath: %s" % jnius_config.get_classpath())
+            log.debug(f"classpath: {jnius_config.get_classpath()}")
         else:
             log.warning("VM is already running, can't set classpath/options")
-            log.debug("VM started at" + jnius_config.vm_started_at)
+            log.debug(f"VM started at{jnius_config.vm_started_at}")
 
         from jnius import JavaClass, MetaJavaClass, JavaMethod
-        #####
         class LiquibaseCommandLine(JavaClass, metaclass=MetaJavaClass):
             __javaclass__ = "liquibase/integration/commandline/LiquibaseCommandLine"
 
@@ -105,13 +112,12 @@ class Pyliquibase():
         return LiquibaseCommandLine()
 
     def execute(self, *arguments: str):
-        log.debug("Executing liquibase %s" % list(arguments))
-        rc = self.cli.execute(self.args + list(arguments))
-        if rc:
-            raise Exception("Liquibase execution failed with exit code:%s" % rc)
+        log.debug(f"Executing liquibase {list(arguments)}")
+        if rc := self.cli.execute(self.args + list(arguments)):
+            raise Exception(f"Liquibase execution failed with exit code:{rc}")
 
     def addarg(self, key: str, val):
-        _new_arg = "%s=%s" % (key, val)
+        _new_arg = f"{key}={val}"
         self.args.append(_new_arg)
 
     def update(self):
@@ -125,7 +131,7 @@ class Pyliquibase():
 
         param: tag: Name of a tag in the changelog.
         """
-        log.debug("Updating to tag: %s" % tag)
+        log.debug(f"Updating to tag: {tag}")
         self.execute("update-to-tag", tag)
 
     def validate(self):
@@ -135,11 +141,11 @@ class Pyliquibase():
         self.execute("status")
 
     def rollback(self, tag):
-        log.debug("Rolling back to tag:%s" % tag)
+        log.debug(f"Rolling back to tag:{tag}")
         self.execute("rollback", tag)
 
     def rollback_to_datetime(self, datetime):
-        log.debug("Rolling back to %s" % str(datetime))
+        log.debug(f"Rolling back to {str(datetime)}")
         self.execute("rollbackToDate", datetime)
 
     def changelog_sync(self):
@@ -153,7 +159,10 @@ class Pyliquibase():
 
         param: tag: Name of a tag in the changelog.
         """
-        log.debug("Marking all undeployed changes as executed up to tag %s in database." % tag)
+        log.debug(
+            f"Marking all undeployed changes as executed up to tag {tag} in database."
+        )
+
         self.execute("changelog-sync-to-tag", tag)
 
     def clear_checksums(self):
@@ -170,16 +179,16 @@ class Pyliquibase():
 
     def _download_liquibase(self) -> None:
         if os.path.exists(self.liquibase_dir):
-            log.debug("Liquibase version %s found, skipping download..." % str(self.version))
+            log.debug(f"Liquibase version {str(self.version)} found, skipping download...")
             return
 
         url = URL_LIQUIBASE_ZIP.format(self.version, self.version)
         with tempfile.TemporaryFile() as tmpfile:
-            log.info("Downloading %s" % (url))
+            log.info(f"Downloading {url}")
             with request.urlopen(url) as response:
                 tmpfile.write(response.read())
 
-            log.info("Extracting to %s" % (self.liquibase_dir))
+            log.info(f"Extracting to {self.liquibase_dir}")
             with zipfile.ZipFile(tmpfile, 'r') as zip_ref:
                 zip_ref.extractall(self.liquibase_dir)
 
